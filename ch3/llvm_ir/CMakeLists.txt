@@ -1,25 +1,14 @@
 set(CMAKE_CXX_STANDARD 17)
-
 cmake_minimum_required(VERSION 3.22)
-
-project(CH3
-        LANGUAGES CXX C)
-
+project(CH3 LANGUAGES CXX C)
 include(../../cmake/utils/set-llvm-install-prefix.cmake)
-
-set(CURR_TARGET
-  build_ir
-)
-
+set(CURR_TARGET build_ir)
 set(SRC
   "main.cpp"
   "solution/populate_function.cpp"
   "your_turn/populate_function.cpp"
 )
-
-set(INC
-)
-
+set(INC)
 set(CMAKE_CXX_FLAGS -fno-rtti)
 
 # Now build our tools

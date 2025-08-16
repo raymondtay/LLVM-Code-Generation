@@ -1,0 +1,7 @@
+CompileFlags:
+  Add:
+    - -I/usr/local/opt/llvm/include
+    - -I/Users/raymondtay/Projects/LLVM-code-generation/ch3
+    - -I/Users/raymondtay/Projects/LLVM-code-generation/ch4
+    - -I/Users/raymondtay/Projects/LLVM-code-generation/ch5
+
