@@ -32,3 +32,22 @@ identification of value sources and sinks.
 use and its definition, enabling the identification of value sources.
 By analyzing these chains, developers can optimize program performance, reduce errors,
 and enhance code maintainability.
+
+The following table gives an example of code where the code snippet on the right 
+would jump from the scope of bar to the scope of foo, simply by following the 
+`use-def` chain starting at `bar_res`:
+
+| Input IR | A program using LLVM APIs |
+| ---------| --------------------------| 
+| extern char *global;         | Value *Global = BarRes.getOperand(0); | 
+|char **other_global = &global;| for (User *UserOfGlobal : Global->users()) {| 
+|char foo() {                  |   auto *UserInstr = dyn_cast<Instruction>(UserOfGlobal);| 
+|  char foo_res = global[0];   |   if (!UserInstr) {| 
+|  return foo_res;             |     errs() << "Found a non-instruction use of global: " << *UserOfGlobal << '\n';| 
+|}                             |     continue;| 
+|char bar() {                  |   }                                                              | 
+|  char bar_res = global[0];   |   Function *UserFunc = UserInstr->getParent()->getParent();      | 
+|  return bar_res;             |   if (UserFunc != BarFunc) {                                     |
+|}                             |     errs() << "Went from bar to " << UserFunc->getName() << '\n';|
+|                              |   }                                                              |
+|                              | }
