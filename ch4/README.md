@@ -33,21 +33,38 @@ use and its definition, enabling the identification of value sources.
 By analyzing these chains, developers can optimize program performance, reduce errors,
 and enhance code maintainability.
 
-The following table gives an example of code where the code snippet on the right 
-would jump from the scope of bar to the scope of foo, simply by following the 
+The following table gives an example of code where the code snippet on the right
+would jump from the scope of bar to the scope of foo, simply by following the
 `use-def` chain starting at `bar_res`:
 
-| Input IR | A program using LLVM APIs |
-| ---------| --------------------------| 
-| extern char *global;         | Value *Global = BarRes.getOperand(0); | 
-|char **other_global = &global;| for (User *UserOfGlobal : Global->users()) {| 
-|char foo() {                  |   auto *UserInstr = dyn_cast<Instruction>(UserOfGlobal);| 
-|  char foo_res = global[0];   |   if (!UserInstr) {| 
-|  return foo_res;             |     errs() << "Found a non-instruction use of global: " << *UserOfGlobal << '\n';| 
-|}                             |     continue;| 
-|char bar() {                  |   }                                                              | 
-|  char bar_res = global[0];   |   Function *UserFunc = UserInstr->getParent()->getParent();      | 
-|  return bar_res;             |   if (UserFunc != BarFunc) {                                     |
-|}                             |     errs() << "Went from bar to " << UserFunc->getName() << '\n';|
-|                              |   }                                                              |
-|                              | }
+| Input IR                         | A program using LLVM APIs                                                      |
+| -------------------------------- | ------------------------------------------------------------------------------ |
+| extern char \*global;            | Value \*Global = BarRes.getOperand(0);                                         |
+| char \*\*other_global = &global; | for (User \*UserOfGlobal : Global->users()) {                                  |
+| char foo() {                     | auto \*UserInstr = dyn_cast<Instruction>(UserOfGlobal);                        |
+| char foo_res = global[0];        | if (!UserInstr) {                                                              |
+| return foo_res;                  | errs() << "Found a non-instruction use of global: " << \*UserOfGlobal << '\n'; |
+| }                                | continue;                                                                      |
+| char bar() {                     | }                                                                              |
+| char bar_res = global[0];        | Function \*UserFunc = UserInstr->getParent()->getParent();                     |
+| return bar_res;                  | if (UserFunc != BarFunc) {                                                     |
+| }                                | errs() << "Went from bar to " << UserFunc->getName() << '\n';                  |
+|                                  | }                                                                              |
+|                                  | }                                                                              |
+
+The above code is explained below:
+
+- The code starts from the definition of `bar_res` (we omitted the code to get this value for
+  conciseness, but a full example can be found at `ch4/ implicit_func_scope_change)`.
+- We get the definition of global: `Value *Global = BarRes.getOperand(0)`.
+- We walk the users of global: `for (User *UserOfGlobal: Global->users())`.
+- We try to dynamically cast this user to an instruction: `auto *UserInstr = dyn_cast<Instruction>(UserOfGlobal)`.
+- For `other_global`, this cast returns **nullptr**, and we print the first error,
+  `Found a non-instruction…`, which illustrates that not all users are instructions.
+- For `bar_res` and `foo_res`, the cast succeeds, and we look for the parent of the
+  parent of this definition (hence, we get the basic block first (`->getParent()`),
+  and from there, the function second (`->getParent()`).
+- Finally, we check if that function is the same as `bar`, and for `foo_res`'s function,
+  this prints the second error, Went from bar to…, which illustrates that while walking
+  **def-use** and **use-def** chains, it is possible to go from an instruction in a
+  function to an instruction in another function.
