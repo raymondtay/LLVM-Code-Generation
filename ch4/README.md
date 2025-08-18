@@ -17,3 +17,18 @@ with `getOpcode() == PHI` in the Machine IR.
 
 The optimization in the LLVM IR responsible for promoting memory locations to
 SSA values is `mem2reg`.
+
+# Def-use and use-def chains
+
+`Def-use` and `use-def` chains are fundamental concepts in data flow analysis,
+enabling the efficient tracking of value definitions and uses in programming.
+
+`Def-use` chains refer to the relationship between a definition of a value and
+its subsequent uses, allowing for efficient tracking of value usage.
+This concept is essential in data flow analysis, as it enables the
+identification of value sources and sinks.
+
+`Use-def` chains, on the other hand, represent the relationship between a value's
+use and its definition, enabling the identification of value sources.
+By analyzing these chains, developers can optimize program performance, reduce errors,
+and enhance code maintainability.
