@@ -68,3 +68,14 @@ The above code is explained below:
   this prints the second error, Went from bar to…, which illustrates that while walking
   **def-use** and **use-def** chains, it is possible to go from an instruction in a
   function to an instruction in another function.
+
+# Register Pressure
+
+The idea behind register pressure is to keep track of all resources that may reside
+in the register and make sure that this number does not exceed the number of
+physical registers.
+
+For instance, if you move some instructions around in your transformation, the
+related values will ultimately need to be available in some hardware storage.
+If by doing your transformation, you oversubscribe the registers, you will need to
+back up the additional values with memory, which is slower to access than registers.
