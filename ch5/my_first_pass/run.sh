@@ -4,12 +4,12 @@ set -euo pipefail
 
 # ---- defaults (can be overridden by flags/env) ------------------------------
 SRC_DIR="${SRC_DIR:-./build}"
-LIB_BASE="${LIB_BASE:-HelloPass}"  # base name without prefix/suffix
-PIPELINE="${PIPELINE:-hello-func}" # -passes pipeline (new PM)
-INPUT="${INPUT:-./test.ll}"        # default input
-OPT_BIN="${OPT_BIN:-opt}"          # path to opt (or just "opt")
-DISABLE_OUTPUT=1                   # default: don't write bitcode
-OUTFILE=""                         # set via -o to write output
+LIB_BASE="${LIB_BASE:-HelloPass}"                                # base name without prefix/suffix
+PIPELINE="${PIPELINE:-hello-func,fn-stats,module-count-globals}" # -passes pipeline (new PM)
+INPUT="${INPUT:-./test.ll}"                                      # default input
+OPT_BIN="${OPT_BIN:-opt}"                                        # path to opt (or just "opt")
+DISABLE_OUTPUT=1                                                 # default: don't write bitcode
+OUTFILE=""                                                       # set via -o to write output
 
 # ---- helpers ----------------------------------------------------------------
 die() {
