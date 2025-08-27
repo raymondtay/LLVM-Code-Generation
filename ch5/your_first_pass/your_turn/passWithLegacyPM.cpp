@@ -13,17 +13,28 @@ void initializeYourTurnConstantPropagationPass(PassRegistry &);
 };
 
 namespace {
-class YourTurnConstantPropagation /* TODO: Fill in the blanks */ {
+class YourTurnConstantPropagation : public FunctionPass {
 public:
-  YourTurnConstantPropagation() /* TODO: Fill in the blanks */ {}
+  static char ID;
+  YourTurnConstantPropagation() : FunctionPass(ID) {
+    // Technically speaking, we do not need to put this in the constructor.
+    // usually this call lives in the uber InitializeAllXXX.
+    initializeYourTurnConstantPropagationPass(*PassRegistry::getPassRegistry());
+  }
 
-  // TODO: Fill in the blanks.
+  // Main function of a FunctionPass.llvm
+  bool runOnFunction(Function &F) override {
+    errs() << "Solution Legacy called on " << F.getName() << '\n';
+    return solutionConstantPropagation(F);
+  }
 };
 } // End anonymous namespace.
 
-// TODO: Remove and add proper implementation
-void llvm::initializeYourTurnConstantPropagationPass(PassRegistry &) {}
+char YourTurnConstantPropagation::ID = 0;
+
+INITIALIZE_PASS(YourTurnConstantPropagation, "legacy-solution",
+                "Legacy Solution", false, false);
 
 Pass *createYourTurnPassForLegacyPM() {
-  return nullptr; // TODO: Fill in the blanks.
+  return new YourTurnConstantPropagation();
 }
