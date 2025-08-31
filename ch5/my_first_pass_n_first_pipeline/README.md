@@ -12,8 +12,30 @@
 	• Loop (loop structures),
 	• CGSCC (Call Graph SCC).
 
-2. Why do we need a Pass Manager?
+2.0 What is a pass manager?
 ===
+
+A pass manager is a driver for the set of passes that you want to run.
+
+It fulfills three main functions:
+
+* It provides a structure to run passes in a specific order.
+* It makes sure that the dependencies of a pass are properly executed before the pass itself.
+* It preserves or invalidates the various analyses based on the passes’ effects.
+* When a pass manager invokes a pass, it also provides specific guarantees on the order in which the IR is visited.
+
+These guarantees are as follows:
+
+* For CGSCC-scoped passes, a pass manager invokes the pass on the leaf
+  strongly connected component (SCC) regions first then moves up in the call graph.
+* For loop-scoped passes, loops are visited following their nested level from innermost to outermost loops.
+* For region-scoped passes, the nesting level is also used in a similar
+  fashion: from the innermost region to the outermost regions.
+* For other scopes, the order is not specified.
+
+
+2.1 Why do we need a Pass Manager?
+====
 
 LLVM programs don’t run just a single pass.
 Instead, you want a pipeline of optimizations, like:

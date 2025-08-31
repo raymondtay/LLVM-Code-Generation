@@ -1,5 +1,4 @@
-#include "llvm/IR/Function.h"
-#include "llvm/IR/PassManager.h"
+#include "MyFirstPass.h"
 #include "llvm/Passes/PassBuilder.h"
 #include "llvm/Passes/PassPlugin.h"
 #include "llvm/Support/raw_ostream.h"
@@ -7,66 +6,64 @@
 using namespace llvm;
 
 // A simple function pass
-struct HelloFunctionPass : PassInfoMixin<HelloFunctionPass> {
-  PreservedAnalyses run(Function &F, FunctionAnalysisManager &) {
-    errs() << "Hello from: " << F.getName() << "\n";
-    return PreservedAnalyses::all();
-  }
-};
+PreservedAnalyses HelloFunctionPass::run(Function &F, FunctionAnalysisManager &) {
+  errs() << "Hello from: " << F.getName() << "\n";
+  return PreservedAnalyses::all();
+}
 
-struct CountGlobalsModulePass : PassInfoMixin<CountGlobalsModulePass> {
-  PreservedAnalyses run(Module &M, ModuleAnalysisManager &) {
-    unsigned globals = 0, constGlobals = 0;
-    for (const GlobalVariable &G : M.globals()) {
-      ++globals;
-      if (G.isConstant())
-        ++constGlobals;
-    }
-    errs() << "[count-globals] total=" << globals << " const=" << constGlobals
-           << "\n";
-    // We only read the module, so we preserve everything.
-    return PreservedAnalyses::all();
+// Count the BasicBlocks encountered
+CountBBsAnalysis::Result CountBBsAnalysis::run(Function &F, FunctionAnalysisManager &) {
+  return { static_cast<unsigned>(F.size()) };
+}
+
+AnalysisKey CountBBsAnalysis::Key;
+
+PreservedAnalyses CountGlobalsModulePass::run(Module &M, ModuleAnalysisManager &) {
+  unsigned globals = 0, constGlobals = 0;
+  for (const GlobalVariable &G : M.globals()) {
+    ++globals;
+    if (G.isConstant())
+      ++constGlobals;
   }
-};
+  errs() << "[count-globals] total=" << globals << " const=" << constGlobals
+         << "\n";
+  // We only read the module, so we preserve everything.
+  return PreservedAnalyses::all();
+}
+
+// Custom "print IR" function pass
+PreservedAnalyses DumpFunctionPass::run(Function &F, FunctionAnalysisManager &) {
+  outs() << "[IR dump for function: " << F.getName() << "]\n";
+  F.print(outs());
+  return PreservedAnalyses::all();
+}
+
 
 // ---------------------------
 // (C) Function Analysis + consumer
 // ---------------------------
 
-// The analysis result type
-struct FnStats {
-  unsigned NumBlocks = 0;
-  unsigned NumInsts = 0;
-};
-
 // The analysis proper
-struct FnStatsAnalysis : AnalysisInfoMixin<FnStatsAnalysis> {
-  using Result = FnStats;
-
-  Result run(Function &F, FunctionAnalysisManager &) {
-    Result R{};
-    for (auto &BB : F) {
-      ++R.NumBlocks;
-      R.NumInsts += (unsigned)BB.size();
-    }
-    return R;
+FnStatsAnalysis::Result FnStatsAnalysis::run(Function &F, FunctionAnalysisManager &) {
+  FnStatsAnalysis::Result R{};
+  for (auto &BB : F) {
+    ++R.NumBlocks;
+    R.NumInsts += (unsigned)BB.size();
   }
+  return R;
+}
 
-  static AnalysisKey Key;
-};
 AnalysisKey FnStatsAnalysis::Key;
 
 // A function pass that **consumes** the analysis
-struct PrintFnStatsPass : PassInfoMixin<PrintFnStatsPass> {
-  PreservedAnalyses run(Function &F, FunctionAnalysisManager &AM) {
-    const auto &R = AM.getResult<FnStatsAnalysis>(F);
-    errs() << "[fn-stats] " << F.getName()
-           << " blocks=" << R.NumBlocks
-           << " insts=" << R.NumInsts << "\n";
-    // We don't mutate IR:
-    return PreservedAnalyses::all();
-  }
-};
+PreservedAnalyses PrintFnStatsPass::run(Function &F, FunctionAnalysisManager &AM) {
+  const auto &R = AM.getResult<FnStatsAnalysis>(F);
+  errs() << "[fn-stats] " << F.getName()
+         << " blocks=" << R.NumBlocks
+         << " insts=" << R.NumInsts << "\n";
+  // We don't mutate IR:
+  return PreservedAnalyses::all();
+}
 
 // Register the pass plugin
 extern "C" LLVM_ATTRIBUTE_WEAK PassPluginLibraryInfo llvmGetPassPluginInfo() {

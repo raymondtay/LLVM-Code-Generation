@@ -4,7 +4,7 @@ set -euo pipefail
 
 # ---- defaults (can be overridden by flags/env) ------------------------------
 SRC_DIR="${SRC_DIR:-./build}"
-LIB_BASE="${LIB_BASE:-HelloPass}"                                     # base name without prefix/suffix
+LIB_BASE="${LIB_BASE:-MyFirstPass}"                                   # base name without prefix/suffix
 PIPELINE='module(module-count-globals,function(hello-func,fn-stats))' # -passes pipeline (new PM)
 INPUT="${INPUT:-./test.ll}"                                           # default input
 OPT_BIN="${OPT_BIN:-opt}"                                             # path to opt (or just "opt")
@@ -35,7 +35,7 @@ Environment vars respected:
   SRC_DIR, LIB_BASE, PIPELINE, INPUT, OPT_BIN
 
 Examples:
-  $(basename "$0") -s ./build -b HelloPass -p hello-func ./test.ll
+  $(basename "$0") -s ./build -b MyFirstPass -p hello-func ./test.ll
   $(basename "$0") --out out.bc ./test.ll
 EOF
 }
