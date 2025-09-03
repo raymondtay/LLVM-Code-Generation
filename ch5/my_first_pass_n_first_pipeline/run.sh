@@ -160,9 +160,9 @@ if [[ $USE_LEGACY -eq 1 ]]; then
 else
   # New pass manager path
   if [[ $DISABLE_OUTPUT -eq 1 ]]; then
-    "$OPT_BIN" -load-pass-plugin "$PLUGIN_PATH" -passes="$PIPELINE" -disable-output "$INPUT"
+    "$OPT_BIN" -load-pass-plugin "$PLUGIN_PATH" -time-passes -passes="$PIPELINE" -disable-output "$INPUT"
   else
-    "$OPT_BIN" -load-pass-plugin "$PLUGIN_PATH" -passes="$PIPELINE" "$INPUT" -o "$OUTFILE"
+    "$OPT_BIN" -load-pass-plugin "$PLUGIN_PATH" -time-passes -passes="$PIPELINE" "$INPUT" -o "$OUTFILE"
   fi
 fi
 set +x

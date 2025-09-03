@@ -1,6 +1,6 @@
 // RunPipeline.cpp
+#include "MyFirstPass.h"
 #include "llvm/Analysis/AliasAnalysis.h"
-#include "llvm/TargetParser/Triple.h"
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/Module.h"
 #include "llvm/IRReader/IRReader.h"
@@ -11,14 +11,17 @@
 #include "llvm/Support/SourceMgr.h"
 #include "llvm/Support/WithColor.h"
 #include "llvm/Support/raw_ostream.h"
-#include "MyFirstPass.h"
+#include "llvm/TargetParser/Triple.h"
 
 using namespace llvm;
 
-static cl::opt<std::string> InputFilename(
-    cl::Positional, cl::desc("<input IR file>"), cl::Required);
+// Using the New PassManager
+// https://llvm.org/docs/NewPassManager.html
+//
+static cl::opt<std::string>
+    InputFilename(cl::Positional, cl::desc("<input IR file>"), cl::Required);
 
-int main(int argc, char** argv) {
+int main(int argc, char **argv) {
   InitLLVM X(argc, argv);
   cl::ParseCommandLineOptions(argc, argv, "Mini pipeline runner\n");
 
@@ -55,8 +58,7 @@ int main(int argc, char** argv) {
   // `true` enables debug logging to stderr for each pass
   StandardInstrumentations SI(Context,
                               /*DebugLogging=*/true,
-                              /*VerifyEachPass=*/false,
-                              PrintPassOpts);
+                              /*VerifyEachPass=*/false, PrintPassOpts);
   SI.registerCallbacks(PIC, &MAM);
 
   // Make instrumentation analysis available at the module layer.
@@ -79,13 +81,13 @@ int main(int argc, char** argv) {
   ModulePassManager MPM;
 
   // (A) If you compiled your custom passes into this executable:
-  extern ModulePassManager buildCustomModulePM();  // (optional)
-  extern FunctionPassManager buildCustomFunctionPM();  // (optional)
+  extern ModulePassManager buildCustomModulePM();     // (optional)
+  extern FunctionPassManager buildCustomFunctionPM(); // (optional)
   // Otherwise, inline minimal examples here:
 
   // Example: your module pass
-  // extern PassPluginLibraryInfo llvmGetPassPluginInfo(); // if you kept plugin style
-  // If you directly have a C++ class CountGlobalsModulePass, you can do:
+  // extern PassPluginLibraryInfo llvmGetPassPluginInfo(); // if you kept plugin
+  // style If you directly have a C++ class CountGlobalsModulePass, you can do:
   //   MPM.addPass(CountGlobalsModulePass());
   MPM.addPass(CountGlobalsModulePass());
 
@@ -109,4 +111,3 @@ int main(int argc, char** argv) {
 
   return 0;
 }
-
