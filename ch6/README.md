@@ -7,7 +7,7 @@ from Clang's command-line options to multi-level intermediate representation (ML
 operation's boilerplate C++ code, or used directly within LLVM to generate
 the instruction selection tables, and so on.
 
-Fundamentally, TableGen is a DEL to produce records. A record is an entity with a
+Fundamentally, TableGen is a DSL to produce records. A record is an entity with a
 name and an arbitrary number of fields, where each field has its own type.
 
 How these records are used and what output TableGen generates from them depends on the
