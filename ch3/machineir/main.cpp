@@ -19,9 +19,8 @@ using namespace llvm;
 extern MachineFunction *solutionPopulateMachineIR(MachineModuleInfo &,
                                                   llvm::Function &, Register,
                                                   Register);
-extern MachineFunction *populateMachineIR(MachineModuleInfo &,
-                                                  llvm::Function &, Register,
-                                                  Register);
+extern MachineFunction *populateMachineIR(MachineModuleInfo &, llvm::Function &,
+                                          Register, Register);
 
 bool checkFunctionCorrectness(MachineFunction *Res, Register W0, Register W1) {
   // Take care of the liveness since we did not explain how to do that.
@@ -44,11 +43,11 @@ int main() {
   // We need the MC layer as well to query the register information.
   InitializeAllTargetMCs();
 
-  auto TT(Triple::normalize("aarch64--"));
+  Triple TT(Triple::normalize("aarch64--"));
   std::string Error;
   const Target *TheTarget = TargetRegistry::lookupTarget(TT, Error);
   if (!TheTarget) {
-    errs() << TT << " is not available with this build of LLVM\n";
+    errs() << TT.getTriple() << " is not available with this build of LLVM\n";
     return -1;
   }
   auto *LLVMTM = static_cast<CodeGenTargetMachineImpl *>(
@@ -99,7 +98,6 @@ int main() {
   MachineFunction *YourTurnRes =
       populateMachineIR(MMIWP.getMMI(), *Foo, W0, W1);
   bool yourTurnIsCorrect = checkFunctionCorrectness(YourTurnRes, W0, W1);
-
 
   return !(solutionIsCorrect && yourTurnIsCorrect);
 }
