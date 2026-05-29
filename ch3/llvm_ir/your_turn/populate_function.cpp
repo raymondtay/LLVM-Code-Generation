@@ -57,99 +57,89 @@ using namespace llvm;
 //
 // declare void @bar(i32)
 // declare i32 @baz(...)
-std::unique_ptr<Module> myBuildModule(LLVMContext &Ctx) {
- 
-  // 1. Create the types needed
-  Type* VoidTy = Type::getVoidTy(Ctx);
-  Type* Int32Ty = Type::getInt32Ty(Ctx);
-  Type* PtrTy = PointerType::get(Ctx, /* AddressSpace */ 0);
+std::unique_ptr<Module> myBuildModule(LLVMContext &Ctxt) {
 
+  // Create the types to be used in this program.
+  Type *Int32Ty = Type::getInt32Ty(Ctxt);
+  Type *VoidTy = Type::getVoidTy(Ctxt);
+  Type *PtrTy = PointerType::get(Ctxt, /*AddrSpace=*/0);
 
-  // 2. Create the high-level module
-  std::unique_ptr<Module> mod =
-    std::make_unique<Module>("Solution", Ctx);
+  // Create the high-level module.
+  std::unique_ptr<Module> MyModule = std::make_unique<Module>("Solution Module", Ctxt);
 
+  // Declaration of all the functions to be used here.
+  // baz.
+  FunctionType *BazTy = FunctionType::get(/*RetTy=*/ Int32Ty, /*isVarArg=*/false);
+  Function *BazFunc = cast<Function>(MyModule->getOrInsertFunction("baz", BazTy).getCallee());
 
-  // 3.1 Create the function 'baz'
-  FunctionType* bazTy =
-    FunctionType::get(/*Return Type*/ Int32Ty, /*isVarArg=*/ false);
-  Function* bazF =
-    cast<Function>(mod->getOrInsertFunction("baz", bazTy).getCallee());
+  // bar.
+  FunctionType *BarTy = FunctionType::get(VoidTy, /*ArgsTy=*/ ArrayRef(Int32Ty), false);
+  Function *BarFunc = cast<Function>(MyModule->getOrInsertFunction("bar", BarTy).getCallee());
 
-  // 3.2 Create the function 'bar'
-  FunctionType* barTy =
-    FunctionType::get(VoidTy, ArrayRef(Int32Ty), false);
-  Function* barF =
-    cast<Function>(mod->getOrInsertFunction("bar", barTy).getCallee());
+  // foo.
+  FunctionType *FooTy = FunctionType::get(VoidTy, /*ArgsTy*/ ArrayRef({Int32Ty, Int32Ty}), false);
+  Function *FooFunc = cast<Function>(MyModule->getOrInsertFunction("foo", FooTy).getCallee());
 
-  // 3.3 Create the function 'foo'
-  FunctionType* fooTy =
-    FunctionType::get(VoidTy, ArrayRef({Int32Ty, Int32Ty}), false);
-  Function* fooF =
-    cast<Function>(mod->getOrInsertFunction("foo", fooTy).getCallee());
+  // Next, craft the structure of Foo
+  BasicBlock *BB = BasicBlock::Create(Ctxt, /*Name=*/"bb", /*Parent=*/ FooFunc);
+  BasicBlock *BB9 = BasicBlock::Create(Ctxt, /*Name=*/ "bb9", /*Parent=*/ FooFunc);
+  BasicBlock *BB12 = BasicBlock::Create(Ctxt, /*Name=*/ "bb12", /*Parent=*/ FooFunc);
 
-  // 4. Once the functions are created, then we create the basic blocks
-  //   since it starts at Foo, remember the single entry single exit analysis
-  //   then its easy to see that we need 3 basicblocks.
-  BasicBlock* BB = BasicBlock::Create(Ctx, "bb", fooF);
-  BasicBlock* BB2 = BasicBlock::Create(Ctx, "bb2", fooF); // THEN branch "bar(var); var = baz()"
-  BasicBlock* BB3 = BasicBlock::Create(Ctx, "bb3", fooF); // ELSE branch "bar(var)"
-
-  // 4.1 Populate bb
+  // 1. Now, we are ready to populate the BB structure
   IRBuilder Builder(BB);
-  Value* I = Builder.CreateAlloca(Int32Ty); // create space for local variable
-  Value* I2 = Builder.CreateAlloca(Int32Ty); // create space for local variable
-  Value* I3 = Builder.CreateAlloca(Int32Ty); // create space for local variable
 
-  // Get the function foo's passed-in arguments
-  Value* firstArg = fooF->getArg(0); // get 1st argument
-  Value* secondArg = fooF->getArg(1); // get 2nd argument
- 
-  // Store and associate the values with the correct types.
-  Builder.CreateStore(firstArg, I);
-  Builder.CreateStore(secondArg, I2);
+  // 2. Allocate stack space for the local variables.
+  Value *I = Builder.CreateAlloca(Int32Ty);
+  Value *I2 = Builder.CreateAlloca(Int32Ty);
+  Value *I3 = Builder.CreateAlloca(Int32Ty);
 
-  // Reload from the local variables (this means its in the CPU registers)
-  Value* I4 = Builder.CreateLoad(Int32Ty, I);
-  Value* I5 = Builder.CreateLoad(Int32Ty, I2);
+  // 3. GEt arg and arg1 from Foo
+  Value* Arg = FooFunc->getArg(0);
+  Value* Arg1 = FooFunc->getArg(1);
 
-  Value* I6 = Builder.CreateAdd(I4, I5); // Perform the addition op.
-  Builder.CreateStore(I6, I3); // Store the outcome to I3
+  // 4. Store them into the local variables
+  Builder.CreateStore(Arg, I);
+  Builder.CreateStore(Arg1, I2);
 
-  // Create a temporary value that houses the outcome of the comparison op.
-  Value* I7 = Builder.CreateLoad(Int32Ty, I3);
-  // Create the value that represents 0xFF, perform the comp-op and store into I8
-  Value* Constant255 = ConstantInt::get(Int32Ty, 255);
-  Value* I8 = Builder.CreateICmpEQ(I7, Constant255);
+  // 4. Reload from the local variables
+  Value *I4 = Builder.CreateLoad(Int32Ty, I);
+  Value *I5 = Builder.CreateLoad(Int32Ty, I2);
 
-  // If I8 == true, go BB2 else BB3
-  Builder.CreateCondBr(I8, BB2, BB3);
+  // 5. Perform the BinOp
+  Value *I6 = Builder.CreateAdd(I4, I5);
 
-  // ------------ Populate the BB of the THEN branch ------------------
-  // Reset the builder on the next basic block.
-  Builder.SetInsertPoint(BB2);
-  // Reload the local variable i3.
+  // 6. Store the result to the local variable, I3.
+  Builder.CreateStore(I6, I3);
+
+  // 7. Reload from the local variable, I3.
+  Value *I7 = Builder.CreateLoad(Int32Ty, I3);
+
+  // Now, we are ready to perform the comparison operation with 0xff.
+  //  if (var == 0xFF) {
+  //    bar(var);
+  //    var = baz();
+  //  }
+  // 
+  Value *Cst255 = ConstantInt::get(Int32Ty, 255);
+  Value *I8 = Builder.CreateICmpEQ(I7, Cst255);
+  // Then Jump!
+  Builder.CreateCondBr(I8, BB9, BB12);
+
+
+  // Let's populate bb9.
+  Builder.SetInsertPoint(BB9);
   Value *I10 = Builder.CreateLoad(Int32Ty, I3);
-  // Call bar with i10.
-  Builder.CreateCall(barF->getFunctionType(), barF, ArrayRef(I10));
-  // Call baz.
-  Value *I11 = Builder.CreateCall(bazF->getFunctionType(), bazF);
-  // Store the result in the local variable i3.
+  Builder.CreateCall(BarFunc->getFunctionType(), BarFunc, ArrayRef(I10));
+  Value *I11 = Builder.CreateCall(BazFunc->getFunctionType(), BazFunc);
   Builder.CreateStore(I11, I3);
-  // Jump to the next block.
-  Builder.CreateBr(BB3);
+  // Now, we move to the "else" block....
+  Builder.CreateBr(BB12);
 
-
-  // ------------ Populate the BB of the ELSE branch ------------------
-  // Reset the builder on the next basic block.
-  Builder.SetInsertPoint(BB3);
-  // Reload the local variable I3.
+  // Populate BB12.
+  Builder.SetInsertPoint(BB12);
   Value *I13 = Builder.CreateLoad(Int32Ty, I3);
-  // Call bar on i13.
-  Builder.CreateCall(barF->getFunctionType(), barF, ArrayRef(I13));
-  // Create the final return.
-  // Remember all basic block must end with a terminator.
+  Builder.CreateCall(BarFunc->getFunctionType(), BarFunc, ArrayRef(I13));
   Builder.CreateRetVoid();
 
-  return mod;
+  return MyModule;
 }
