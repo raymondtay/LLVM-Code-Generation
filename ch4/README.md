@@ -1,3 +1,54 @@
+## Understanding SSA (Static Single Assignment)
+
+The basic problem that SSA solves is to rename all variables such that
+each variable holds exactly one value statically. The term _statically_ 
+means that a variable is lexicographically defined at most once in the
+related function. In other words, a variable can be defined in a loop,
+hence it will hold different values during its lifetime at runtime, but
+but but statically it appears only once in the IR.
+
+Applying these concepts to our favourite code block (below):
+```c
+void foo(int a, int b) {
+  int var = a + b;
+  if (var == 0xFF) {
+    bar(var);
+    var = baz();
+  }
+  bar(var);
+}
+```
+
+Applying these principles, the breakdown looks like:
+
+```mermaid
+flowchart TD
+    Start(["void foo(int a, int b)"]) --> Step1[int var = a + b]
+    Step1 --> CheckVar{var == 0xFF}
+    
+    CheckVar -->|Yes| Action1["bar(var)"]
+    Action1 --> Action2["var = baz()"]
+    Action2 --> Action3["bar(var)"]
+    
+    CheckVar -->|No| Action3
+    
+    Action3 --> End([End])
+```
+In this code snippet, if we were to apply the rules as mentioned above i.e., if we
+rename `var` in its first assignment to `var1` and `var2` in its second Assignment
+(within the `if` statement), which variable should we use in `var`'s last use at the 
+end of the function?
+
+Basically, it gets translated to:
+```mermaid
+flowchart TD
+    Action1(["BB1:\nint var1 = a + b;\n(var1 == 0xFF)"]) --> Action2["BB2:\nbar(var1);\nvar2 = baz();"]
+    Action1 --> Action3
+    Action2 --> Action3["BB3:\nvar3 = phi(var1, var2);\nbar(var3)"]
+    Action3 --> End([End])
+
+```
+
 A `phi` instruction copies the input value from the related control flow edge
 to the definition of the phi. For instance, in ![SSA form of a program](./images/program_SSA_form.png), when the
 control flow goes from `BB1` to `BB3` (that is, the left edge – the first value of the phi),
